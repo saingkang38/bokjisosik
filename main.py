@@ -13,18 +13,16 @@ load_dotenv()
 
 
 def run_fetch():
-    """정책 수집 → AI 재작성 → 저장 → 텔레그램 알림."""
+    """정책 수집 → 저장 → 텔레그램 알림."""
     from src.fetcher import fetch_welfare_policies, normalize_policy
-    from src.rewriter import rewrite_policy
     from src.github_store import GitHubStore
     from src.notifier import send_draft_notification, send_message
 
     api_key = os.environ.get("PUBLIC_DATA_API_KEY", "")
-    anthropic_key = os.environ["ANTHROPIC_API_KEY"]
     github_token = os.environ["GITHUB_TOKEN"]
     github_repo = os.environ["GITHUB_REPO"]
-    bot_token = os.environ["TELEGRAM_BOT_TOKEN"]
-    chat_id = os.environ["TELEGRAM_CHAT_ID"]
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
 
     store = GitHubStore(token=github_token, repo=github_repo)
 
@@ -52,13 +50,7 @@ def run_fetch():
             print(f"[main] 이미 존재: {draft_id}")
             continue
 
-        # 2. AI 재작성
-        print(f"[main] 재작성 중: {draft['title'][:30]}...")
-        title, content = rewrite_policy(draft, anthropic_key)
-        draft["rewritten_title"] = title
-        draft["rewritten_content"] = content
-
-        # 3. GitHub에 저장
+        # 2. GitHub에 저장 (AI 재작성은 대시보드에서 수동으로)
         if store.save_draft(draft):
             # 4. 텔레그램 알림
             msg_id = send_draft_notification(bot_token, chat_id, draft)
