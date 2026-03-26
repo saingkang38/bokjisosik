@@ -1,0 +1,19 @@
+{
+  "id": "80868f8028e8",
+  "status": "pending",
+  "title": "재해보상금",
+  "department": "국가보훈부 보상정책과",
+  "target": "사망 또는 상이를 입은 의무경찰, 의무소방원, 교정시설 경비교도대원을 대상으로 지원합니다.",
+  "criteria": "대상자의 소속기관(경찰청, 소방청, 법무부)에서 지급 대상으로 결정된 경우 지원합니다.",
+  "content": "의무경찰, 교정시설경비교도대원 및 의무소방원이 전투 또는 공무수행 중에 사망 또는 상이를 입은 경우 사망(상이)급여금을 지급합니다.",
+  "summary": "의무경찰, 의무소방대원, 교정시설 경비교도대원이 복무중 사망하거나 상이를 입고 퇴직한 경우 재해보상금을 지급하여 국가의 책임을 강화합니다.",
+  "apply_method": "거주지 읍/면/동 주민센터, 보훈(지)청에서 ‘서비스 신청’\n담당 시/군/구청 또는 보훈(지)청에서 조사 및 심사\n담당 시/군/구청 또는 보훈(지)청에서 보장 결정\n담당 시/군/구청 또는 보훈(지)청에서 대상자에게 서비스 제공\n담당 시/군/구청 또는 보훈(지)청에서 서비스 제공 이후 대상자의 상황 관리",
+  "contact": "1577-0606",
+  "detail_link": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00001074&wlfareInfoReldBztpCd=01",
+  "serv_id": "WLF00001074",
+  "fetched_at": "2026-03-26T23:10:08.375925",
+  "rewritten_title": "",
+  "rewritten_content": "",
+  "telegram_message_id": null,
+  "wp_post_id": null
+}
