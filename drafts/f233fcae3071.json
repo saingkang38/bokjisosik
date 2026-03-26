@@ -1,0 +1,19 @@
+{
+  "id": "f233fcae3071",
+  "status": "pending",
+  "title": "농업인건강보험료지원",
+  "department": "농림축산식품부 농촌사회서비스과",
+  "target": "지역건강보험에 가입한 세대 중 농촌 또는 준농촌지역에 거주하면서 농업, 축산업, 임업에 종사하는 자에게 지원합니다.",
+  "criteria": "지원대상의 내용을 참고해주시기 바랍니다.",
+  "content": "건강보험료의 최대 28%를 지원합니다.",
+  "summary": "의료 이용 접근성이 낮은 농어촌 거주 농업인에 대해 건강보험료 일부를 지원하여 생활안정과 복지증진을 도모합니다.",
+  "apply_method": "거주지 읍/면/동 주민센터, 국민건강보험공단에서 ‘서비스 신청’\n담당 시/군/구청 또는 국민건강보험공단에서 조사 및 심사\n담당 시/군/구청 또는 국민건강보험공단에서 보장 결정\n담당 시/군/구청 또는 국민건강보험공단에서 대상자에게 서비스 제공\n담당 시/군/구청 또는 국민건강보험공단에서 서비스 제공 이후 대상자의 상황 관리",
+  "contact": "1577-1000",
+  "detail_link": "https://www.bokjiro.go.kr/ssis-tbu/twataa/wlfareInfo/moveTWAT52011M.do?wlfareInfoId=WLF00001099&wlfareInfoReldBztpCd=01",
+  "serv_id": "WLF00001099",
+  "fetched_at": "2026-03-26T23:11:14.503531",
+  "rewritten_title": "",
+  "rewritten_content": "",
+  "telegram_message_id": null,
+  "wp_post_id": null
+}
