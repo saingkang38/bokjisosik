@@ -42,10 +42,10 @@ def fetch_welfare_policies(api_key: str, num_rows: int = 10, page: int = 1) -> l
                 continue
             detail = fetch_welfare_detail(api_key, serv_id)
             if detail:
-                # 목록에서만 가져올 수 있는 필드 보완
                 detail["servDtlLink"] = item.findtext("servDtlLink", "")
                 detail["sprtCycNm"] = item.findtext("sprtCycNm", "")
                 detail["srvPvsnNm"] = item.findtext("srvPvsnNm", "")
+                detail["intrsThemaArray"] = item.findtext("intrsThemaArray", "")  # 카테고리
                 results.append(detail)
 
         return results
@@ -117,9 +117,14 @@ def normalize_policy(item: dict) -> dict:
         "contact": item.get("rprsCtadr", ""),
         "detail_link": item.get("servDtlLink", ""),
         "serv_id": item.get("servId", ""),
+        "categories": item.get("intrsThemaArray", ""),  # 예: "생활지원,신체건강"
         "fetched_at": datetime.now().isoformat(),
         "rewritten_title": "",
         "rewritten_content": "",
+        "draft_content": "",       # 1차 초안
+        "reviewed_content": "",    # 검수 후 최종본
+        "scheduled_at": "",        # 예약발행 시각
+        "image_url": "",
         "telegram_message_id": None,
         "wp_post_id": None,
     }

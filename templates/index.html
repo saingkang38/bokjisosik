@@ -11,45 +11,69 @@
   <!-- 헤더 -->
   <div class="bg-white border-b sticky top-0 z-10">
     <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-      <h1 class="text-xl font-bold text-blue-600">복지소식 대시보드</h1>
+      <h1 class="text-xl font-bold text-blue-600">복지소식</h1>
       <a href="/logout" class="text-sm text-gray-400">로그아웃</a>
     </div>
   </div>
 
-  <div class="max-w-2xl mx-auto px-4 py-6">
+  <div class="max-w-2xl mx-auto px-4 py-5">
 
-    {% if request.query_params.get('msg') == 'published' %}
-    <div class="bg-green-50 text-green-700 rounded-xl p-4 mb-4 text-sm">✅ 워드프레스에 발행 완료!</div>
-    {% elif request.query_params.get('msg') == 'saved' %}
-    <div class="bg-blue-50 text-blue-700 rounded-xl p-4 mb-4 text-sm">💾 저장 완료 (워드프레스 미연결)</div>
+    <!-- 알림 -->
+    {% if request.query_params.get('msg') %}
+    <div class="bg-green-50 text-green-700 rounded-xl p-3 mb-4 text-sm">✅ {{ request.query_params.get('msg') }}</div>
     {% endif %}
 
     <!-- 통계 -->
-    <div class="bg-white rounded-2xl shadow-sm p-4 mb-6">
-      <p class="text-gray-500 text-sm">승인 대기 중</p>
-      <p class="text-3xl font-bold text-gray-800">{{ drafts | length }}건</p>
+    <div class="bg-white rounded-2xl shadow-sm p-4 mb-4 flex gap-4">
+      <div>
+        <p class="text-xs text-gray-400">승인 대기</p>
+        <p class="text-2xl font-bold text-gray-800">{{ total }}건</p>
+      </div>
+    </div>
+
+    <!-- 카테고리 탭 -->
+    <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+      {% for cat in categories %}
+      <a href="/?category={{ cat }}"
+         class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium
+                {% if cat == current_category %}bg-blue-600 text-white{% else %}bg-white text-gray-600 border border-gray-200{% endif %}">
+        {{ cat }}
+      </a>
+      {% endfor %}
     </div>
 
     <!-- 초안 목록 -->
     {% if drafts %}
       {% for draft in drafts %}
-      <a href="/draft/{{ draft.id }}" class="block bg-white rounded-2xl shadow-sm p-5 mb-3 hover:shadow-md transition">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex-1 min-w-0">
-            <p class="font-semibold text-gray-800 leading-snug mb-1 truncate">
-              {{ draft.rewritten_title or draft.title }}
-            </p>
-            <p class="text-sm text-gray-500 truncate">{{ draft.department }}</p>
-          </div>
-          <span class="shrink-0 bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded-full">대기</span>
+      <a href="/draft/{{ draft.id }}" class="block bg-white rounded-2xl shadow-sm p-4 mb-3 hover:shadow-md transition">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <p class="font-semibold text-gray-800 leading-snug flex-1">{{ draft.title }}</p>
+          <!-- 상태 배지 -->
+          {% if draft.status == 'pending' %}
+            <span class="shrink-0 bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">원문</span>
+          {% elif draft.status == 'draft_generated' %}
+            <span class="shrink-0 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">초안완료</span>
+          {% elif draft.status == 'reviewed' %}
+            <span class="shrink-0 bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">검수완료</span>
+          {% elif draft.status == 'scheduled' %}
+            <span class="shrink-0 bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">예약</span>
+          {% endif %}
         </div>
-        <p class="text-sm text-gray-400 mt-2 text-right">{{ draft.fetched_at[:10] }}</p>
+        <p class="text-sm text-gray-500 mb-2">{{ draft.department }}</p>
+        <!-- 카테고리 태그 -->
+        {% if draft.categories %}
+        <div class="flex gap-1 flex-wrap">
+          {% for cat in draft.categories.split(',') %}
+          <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ cat.strip() }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <p class="text-xs text-gray-300 mt-2 text-right">{{ draft.fetched_at[:10] }}</p>
       </a>
       {% endfor %}
     {% else %}
       <div class="bg-white rounded-2xl shadow-sm p-10 text-center">
-        <p class="text-gray-400 text-lg">대기 중인 초안이 없습니다</p>
-        <p class="text-gray-300 text-sm mt-1">매일 오전 10시에 자동 수집됩니다</p>
+        <p class="text-gray-400">해당 카테고리에 초안이 없습니다</p>
       </div>
     {% endif %}
 

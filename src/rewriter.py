@@ -1,82 +1,112 @@
 """
-Claude API를 사용해 복지 정책을 중학생도 이해할 수 있는 쉬운 글로 재작성합니다.
+Claude API를 사용해 복지 정책을 2단계로 처리합니다.
+1단계: 초안 생성 (보수적 초안 작성 엔진)
+2단계: 초안 검수 (보수적 검수 및 교정 엔진)
+
+프롬프트는 prompts/guidelines.md에서 읽어옵니다.
 """
 
 import anthropic
-
-SYSTEM_PROMPT = """당신은 복지 정책 전문 블로그 작가입니다.
-어려운 정부 복지 정책 내용을 중학생도 쉽게 이해할 수 있도록 블로그 포스팅으로 재작성합니다.
-
-규칙:
-1. 어려운 한자어나 행정용어는 쉬운 말로 바꿔 설명하세요
-2. 핵심 내용을 먼저 말하고, 자세한 내용은 뒤에 설명하세요
-3. 지원 대상, 지원 내용, 신청 방법을 명확하게 구분해 주세요
-4. 딱딱한 말투가 아닌 친근하고 따뜻한 말투를 사용하세요
-5. HTML 태그를 사용해 워드프레스에 바로 올릴 수 있게 작성하세요
-6. 제목은 클릭하고 싶게 흥미롭게 만드세요
-"""
-
-USER_PROMPT_TEMPLATE = """아래 복지 정책 정보를 블로그 포스팅으로 재작성해주세요.
-
-[원본 정보]
-정책명: {title}
-소관부처: {department}
-지원대상: {target}
-서비스 요약: {summary}
-서비스 내용: {content}
-신청 URL: {apply_url}
-
-[출력 형식]
-반드시 아래 형식으로 출력하세요:
-
-TITLE: (블로그 제목)
----
-CONTENT:
-(HTML 형식의 블로그 본문)
-"""
+import os
+import re
 
 
-def rewrite_policy(draft: dict, api_key: str) -> tuple[str, str]:
-    """
-    정책 내용을 Claude로 재작성합니다.
-    Returns: (rewritten_title, rewritten_content)
-    """
-    client = anthropic.Anthropic(api_key=api_key)
-
-    prompt = USER_PROMPT_TEMPLATE.format(
-        title=draft.get("title", ""),
-        department=draft.get("department", ""),
-        target=draft.get("target", ""),
-        summary=draft.get("summary", ""),
-        content=draft.get("content", ""),
-        apply_url=draft.get("apply_url", ""),
-    )
+def _load_guidelines() -> dict:
+    """guidelines.md에서 각 단계 프롬프트를 읽어옵니다."""
+    # 파일 위치: 프로젝트 루트의 prompts/guidelines.md
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(base_dir, "prompts", "guidelines.md")
 
     try:
-        message = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}],
-            system=SYSTEM_PROMPT,
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # 1차 초안 프롬프트 추출
+        draft_match = re.search(
+            r"## 1차 초안 생성 프롬프트\n(.*?)(?=## |\Z)", content, re.DOTALL
         )
+        draft_prompt = draft_match.group(1).strip() if draft_match else ""
 
-        response_text = message.content[0].text
+        # 검수 프롬프트 추출
+        review_match = re.search(
+            r"## 2단계 검수 프롬프트\n(.*?)(?=## |\Z)", content, re.DOTALL
+        )
+        review_prompt = review_match.group(1).strip() if review_match else ""
 
-        # TITLE / CONTENT 파싱
-        title = draft["title"]
-        content = response_text
-
-        if "TITLE:" in response_text and "---" in response_text:
-            parts = response_text.split("---", 1)
-            title_line = parts[0].strip()
-            title = title_line.replace("TITLE:", "").strip()
-
-            if "CONTENT:" in parts[1]:
-                content = parts[1].split("CONTENT:", 1)[1].strip()
-
-        print(f"[rewriter] 재작성 완료: {title[:30]}...")
-        return title, content
+        return {"draft": draft_prompt, "review": review_prompt}
 
     except Exception as e:
-        print(f"[rewriter] 재작성 실패: {e}")
-        return draft["title"], draft.get("content", "")
+        print(f"[rewriter] guidelines.md 로드 실패: {e}")
+        return {"draft": "", "review": ""}
+
+
+def generate_draft(draft: dict, api_key: str) -> str:
+    """
+    1단계: 원문 데이터를 기반으로 1차 초안을 생성합니다.
+    Returns: 초안 텍스트
+    """
+    guidelines = _load_guidelines()
+    system_prompt = guidelines["draft"]
+
+    if not system_prompt:
+        return "[오류] guidelines.md에서 초안 프롬프트를 찾을 수 없습니다."
+
+    user_content = f"""[원문 데이터]
+서비스명: {draft.get('title', '')}
+소관부처: {draft.get('department', '')}
+지원대상: {draft.get('target', '')}
+선정기준: {draft.get('criteria', '')}
+지원내용: {draft.get('content', '')}
+서비스요약: {draft.get('summary', '')}
+신청방법: {draft.get('apply_method', '')}
+연락처: {draft.get('contact', '')}
+"""
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_content}],
+        )
+        return message.content[0].text
+    except Exception as e:
+        return f"[오류] 초안 생성 실패: {e}"
+
+
+def review_draft(draft: dict, draft_content: str, api_key: str) -> str:
+    """
+    2단계: 원문과 1차 초안을 비교하여 검수합니다.
+    Returns: 검수 결과 텍스트 (최종 수정본 포함)
+    """
+    guidelines = _load_guidelines()
+    system_prompt = guidelines["review"]
+
+    if not system_prompt:
+        return "[오류] guidelines.md에서 검수 프롬프트를 찾을 수 없습니다."
+
+    user_content = f"""[원문 데이터]
+서비스명: {draft.get('title', '')}
+소관부처: {draft.get('department', '')}
+지원대상: {draft.get('target', '')}
+선정기준: {draft.get('criteria', '')}
+지원내용: {draft.get('content', '')}
+서비스요약: {draft.get('summary', '')}
+신청방법: {draft.get('apply_method', '')}
+
+[1차 가공 초안]
+{draft_content}
+"""
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_content}],
+        )
+        return message.content[0].text
+    except Exception as e:
+        return f"[오류] 검수 실패: {e}"
