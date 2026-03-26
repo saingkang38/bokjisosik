@@ -12,12 +12,12 @@ from datetime import datetime
 BASE_URL = "https://apis.data.go.kr/B554287/NationalWelfareInformationsV001"
 
 
-def fetch_welfare_policies(api_key: str, num_rows: int = 5) -> list[dict]:
+def fetch_welfare_policies(api_key: str, num_rows: int = 10, page: int = 1) -> list[dict]:
     """복지서비스 목록을 가져온 뒤 각 항목의 상세 정보까지 조회합니다."""
     url = f"{BASE_URL}/NationalWelfarelistV001"
     params = {
         "serviceKey": api_key,
-        "pageNo": 1,
+        "pageNo": page,
         "numOfRows": num_rows,
         "srchKeyCode": "001",   # 필수 파라미터
     }
