@@ -34,7 +34,7 @@ def check_auth(request: Request) -> bool:
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="login.html")
 
 
 @app.post("/login")
@@ -43,7 +43,7 @@ async def login(request: Request, password: str = Form(...)):
         response = RedirectResponse("/", status_code=302)
         response.set_cookie("auth", DASHBOARD_PASSWORD, max_age=60 * 60 * 24 * 30)
         return response
-    return templates.TemplateResponse("login.html", {"request": request, "error": "비밀번호가 틀렸습니다"})
+    return templates.TemplateResponse(request=request, name="login.html", context={"error": "비밀번호가 틀렸습니다"})
 
 
 @app.get("/logout")
@@ -65,10 +65,7 @@ async def index(request: Request):
     store = get_store()
     pending = store.list_pending()
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "drafts": pending,
-    })
+    return templates.TemplateResponse(request=request, name="index.html", context={"drafts": pending})
 
 
 # ──────────────────────────────────────────
@@ -86,10 +83,7 @@ async def draft_detail(request: Request, draft_id: str):
     if not draft:
         raise HTTPException(status_code=404, detail="초안을 찾을 수 없습니다")
 
-    return templates.TemplateResponse("draft.html", {
-        "request": request,
-        "draft": draft,
-    })
+    return templates.TemplateResponse(request=request, name="draft.html", context={"draft": draft})
 
 
 # ──────────────────────────────────────────
