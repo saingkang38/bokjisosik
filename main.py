@@ -3,7 +3,6 @@ bokjisosik 메인 실행 파일
 
 모드:
   python main.py --fetch   : 정책 수집 + AI 재작성 + 텔레그램 알림 (GitHub Actions에서 실행)
-  python main.py --bot     : 텔레그램 봇 실행 (Railway에서 항상 실행)
 """
 
 import os
@@ -74,23 +73,13 @@ def run_fetch():
         send_message(bot_token, chat_id, "ℹ️ 오늘은 새로운 복지 정책이 없습니다.")
 
 
-def run_bot():
-    """텔레그램 봇 실행."""
-    from src.bot import run_bot as _run_bot
-    _run_bot()
-
-
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("사용법: python main.py --fetch | --bot")
+        print("사용법: python main.py --fetch")
         sys.exit(1)
 
-    mode = sys.argv[1]
-
-    if mode == "--fetch":
+    if sys.argv[1] == "--fetch":
         run_fetch()
-    elif mode == "--bot":
-        run_bot()
     else:
-        print(f"알 수 없는 모드: {mode}")
+        print(f"알 수 없는 모드: {sys.argv[1]}")
         sys.exit(1)
