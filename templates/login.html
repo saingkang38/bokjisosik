@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>복지소식 대시보드</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+  <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm mx-4">
+    <h1 class="text-2xl font-bold text-center text-blue-600 mb-2">복지소식</h1>
+    <p class="text-center text-gray-500 text-sm mb-6">대시보드 로그인</p>
+
+    {% if error %}
+    <div class="bg-red-50 text-red-600 text-sm rounded-lg p-3 mb-4">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/login">
+      <input
+        type="password"
+        name="password"
+        placeholder="비밀번호 입력"
+        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-base mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        autofocus
+      >
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white rounded-xl py-3 font-semibold text-base hover:bg-blue-700 active:bg-blue-800"
+      >
+        로그인
+      </button>
+    </form>
+  </div>
+</body>
+</html>
