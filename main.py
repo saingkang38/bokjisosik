@@ -37,7 +37,7 @@ def run_fetch():
     page = 1
 
     while True:
-        raw_items = fetch_welfare_policies(api_key, num_rows=10, page=page)
+        raw_items = fetch_welfare_policies(api_key, num_rows=100, page=page)
         if not raw_items:
             print(f"[main] {page}페이지 데이터 없음 - 수집 완료")
             break
