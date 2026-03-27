@@ -6,6 +6,7 @@
 
 import requests
 import hashlib
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
@@ -40,6 +41,7 @@ def fetch_welfare_policies(api_key: str, num_rows: int = 10, page: int = 1) -> l
             serv_id = item.findtext("servId", "")
             if not serv_id:
                 continue
+            time.sleep(0.5)
             detail = fetch_welfare_detail(api_key, serv_id)
             if detail:
                 detail["servDtlLink"] = item.findtext("servDtlLink", "")
