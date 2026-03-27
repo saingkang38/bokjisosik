@@ -10,13 +10,13 @@
 
   <!-- 헤더 -->
   <div class="bg-white border-b sticky top-0 z-10">
-    <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
       <h1 class="text-xl font-bold text-blue-600">복지소식</h1>
       <a href="/logout" class="text-sm text-gray-400">로그아웃</a>
     </div>
   </div>
 
-  <div class="max-w-2xl mx-auto px-4 py-5">
+  <div class="max-w-3xl mx-auto px-4 py-5">
 
     <!-- 알림 -->
     {% if request.query_params.get('msg') %}
@@ -24,15 +24,19 @@
     {% endif %}
 
     <!-- 통계 -->
-    <div class="bg-white rounded-2xl shadow-sm p-4 mb-4 flex gap-4">
+    <div class="bg-white rounded-2xl shadow-sm p-4 mb-4 flex gap-6">
       <div>
-        <p class="text-xs text-gray-400">승인 대기</p>
+        <p class="text-xs text-gray-400">전체</p>
         <p class="text-2xl font-bold text-gray-800">{{ total }}건</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400">현재 필터</p>
+        <p class="text-2xl font-bold text-blue-600">{{ drafts|length }}건</p>
       </div>
     </div>
 
     <!-- 카테고리 탭 -->
-    <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+    <div class="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
       {% for cat in categories %}
       <a href="/?category={{ cat }}"
          class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium
@@ -45,31 +49,77 @@
     <!-- 초안 목록 -->
     {% if drafts %}
       {% for draft in drafts %}
-      <a href="/draft/{{ draft.id }}" class="block bg-white rounded-2xl shadow-sm p-4 mb-3 hover:shadow-md transition">
-        <div class="flex items-start justify-between gap-2 mb-2">
-          <p class="font-semibold text-gray-800 leading-snug flex-1">{{ draft.title }}</p>
-          <!-- 상태 배지 -->
-          {% if draft.status == 'pending' %}
-            <span class="shrink-0 bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">원문</span>
-          {% elif draft.status == 'draft_generated' %}
-            <span class="shrink-0 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">초안완료</span>
-          {% elif draft.status == 'reviewed' %}
-            <span class="shrink-0 bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">검수완료</span>
-          {% elif draft.status == 'scheduled' %}
-            <span class="shrink-0 bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">예약</span>
+      <div class="bg-white rounded-2xl shadow-sm mb-3 overflow-hidden">
+
+        <!-- 제목 + 상태 -->
+        <a href="/draft/{{ draft.id }}" class="block px-4 pt-4 pb-2 hover:bg-gray-50 transition">
+          <div class="flex items-start justify-between gap-2 mb-1">
+            <p class="font-semibold text-gray-800 leading-snug flex-1">{{ draft.title }}</p>
+            {% if draft.status == 'pending' %}
+              <span class="shrink-0 bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">원문</span>
+            {% elif draft.status == 'draft_generated' %}
+              <span class="shrink-0 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">초안완료</span>
+            {% elif draft.status == 'reviewed' %}
+              <span class="shrink-0 bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">검수완료</span>
+            {% elif draft.status == 'scheduled' %}
+              <span class="shrink-0 bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">예약</span>
+            {% endif %}
+          </div>
+          <p class="text-xs text-gray-400">{{ draft.department }}</p>
+          {% if draft.categories %}
+          <div class="flex gap-1 flex-wrap mt-1">
+            {% for cat in draft.categories.split(',') %}
+            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ cat.strip() }}</span>
+            {% endfor %}
+          </div>
           {% endif %}
+        </a>
+
+        <!-- 액션 버튼 -->
+        <div class="flex border-t border-gray-100">
+
+          {% if draft.status == 'pending' %}
+          <!-- 초안생성 -->
+          <form method="post" action="/draft/{{ draft.id }}/generate" class="flex-1">
+            <button type="submit" class="w-full py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 transition">
+              ✏️ 초안생성
+            </button>
+          </form>
+
+          {% elif draft.status == 'draft_generated' %}
+          <!-- 초안 확인 + 검수 -->
+          <a href="/draft/{{ draft.id }}" class="flex-1 py-2.5 text-xs font-medium text-gray-500 hover:bg-gray-50 text-center transition">
+            👁 초안보기
+          </a>
+          <form method="post" action="/draft/{{ draft.id }}/review" class="flex-1 border-l border-gray-100">
+            <button type="submit" class="w-full py-2.5 text-xs font-medium text-purple-600 hover:bg-purple-50 transition">
+              🔍 검수
+            </button>
+          </form>
+
+          {% elif draft.status == 'reviewed' %}
+          <!-- 검수완료 → 발행하러 가기 -->
+          <a href="/draft/{{ draft.id }}" class="flex-1 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 text-center transition">
+            🚀 발행하기
+          </a>
+
+          {% else %}
+          <a href="/draft/{{ draft.id }}" class="flex-1 py-2.5 text-xs font-medium text-gray-400 hover:bg-gray-50 text-center transition">
+            보기
+          </a>
+          {% endif %}
+
+          <!-- 제외 버튼 (공통) -->
+          <form method="post" action="/draft/{{ draft.id }}/exclude"
+                onsubmit="return confirm('제외하시겠습니까?')"
+                class="border-l border-gray-100">
+            <button type="submit" class="px-4 py-2.5 text-xs font-medium text-gray-400 hover:bg-red-50 hover:text-red-500 transition">
+              제외
+            </button>
+          </form>
+
         </div>
-        <p class="text-sm text-gray-500 mb-2">{{ draft.department }}</p>
-        <!-- 카테고리 태그 -->
-        {% if draft.categories %}
-        <div class="flex gap-1 flex-wrap">
-          {% for cat in draft.categories.split(',') %}
-          <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{{ cat.strip() }}</span>
-          {% endfor %}
-        </div>
-        {% endif %}
-        <p class="text-xs text-gray-300 mt-2 text-right">{{ draft.fetched_at[:10] }}</p>
-      </a>
+      </div>
       {% endfor %}
     {% else %}
       <div class="bg-white rounded-2xl shadow-sm p-10 text-center">
