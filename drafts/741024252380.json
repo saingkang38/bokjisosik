@@ -1,6 +1,6 @@
 {
   "id": "741024252380",
-  "status": "pending",
+  "status": "draft_generated",
   "title": "아이돌봄 서비스",
   "department": "성평등가족부 가족문화과",
   "target": "정부 지원 대상자는다음과 같습니다.\n\n아동의 연령이 12세 이하\n부모의 취업 등으로 양육공백 발생\n자녀양육 정부지원 중복금지 기준\n가구 기준중위소득 200% 이하인 가정\n\n상기 , ,  의 조건 충족 시 정부지원이 가능하며, 의 가구 소득에 따라 서비스 유형별 정부지원의 범위가 달라집니다.",
@@ -15,5 +15,6 @@
   "rewritten_title": "",
   "rewritten_content": "",
   "telegram_message_id": null,
-  "wp_post_id": null
+  "wp_post_id": null,
+  "draft_content": "[오류] 초안 생성 실패: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011CZSgYMeGidSnLRGMUwGsv'}"
 }
