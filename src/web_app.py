@@ -4,7 +4,7 @@
 
 import os
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from src.github_store import GitHubStore
 from src.wordpress import publish_post
@@ -53,12 +53,12 @@ async def logout():
 # ── 대시보드 메인 ────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, category: str = "전체"):
+async def index(request: Request, category: str = "전체", status: str = "전체"):
     if not check_auth(request):
         return RedirectResponse("/login", status_code=302)
 
     store = get_store()
-    all_drafts = store.list_pending()
+    all_drafts = store.list_all()
 
     # 카테고리 목록 수집
     category_set = set()
@@ -69,21 +69,26 @@ async def index(request: Request, category: str = "전체"):
                 category_set.add(cat)
     categories = ["전체"] + sorted(category_set)
 
-    # 카테고리 필터
+    # 필터링
+    filtered = all_drafts
     if category != "전체":
-        filtered = [d for d in all_drafts if category in d.get("categories", "")]
-    else:
-        filtered = all_drafts
+        filtered = [d for d in filtered if category in d.get("categories", "")]
+    if status != "전체":
+        filtered = [d for d in filtered if d.get("status") == status]
 
     return templates.TemplateResponse(request=request, name="index.html", context={
         "drafts": filtered,
         "categories": categories,
         "current_category": category,
+        "current_status": status,
         "total": len(all_drafts),
+        "count_pending": sum(1 for d in all_drafts if d.get("status") == "pending"),
+        "count_written": sum(1 for d in all_drafts if d.get("status") == "written"),
+        "count_published": sum(1 for d in all_drafts if d.get("status") == "published"),
     })
 
 
-# ── 초안 상세 ────────────────────────────────
+# ── 글 상세/편집 ─────────────────────────────
 
 @app.get("/draft/{draft_id}", response_class=HTMLResponse)
 async def draft_detail(request: Request, draft_id: str):
@@ -93,7 +98,7 @@ async def draft_detail(request: Request, draft_id: str):
     store = get_store()
     draft = store.load_draft(draft_id)
     if not draft:
-        raise HTTPException(status_code=404, detail="초안을 찾을 수 없습니다")
+        raise HTTPException(status_code=404, detail="글을 찾을 수 없습니다")
 
     return templates.TemplateResponse(request=request, name="draft.html", context={
         "draft": draft,
@@ -102,10 +107,15 @@ async def draft_detail(request: Request, draft_id: str):
     })
 
 
-# ── 1단계: 초안 생성 ─────────────────────────
+# ── 글 저장 ──────────────────────────────────
 
-@app.post("/draft/{draft_id}/generate")
-async def generate_draft(request: Request, draft_id: str):
+@app.post("/draft/{draft_id}/save")
+async def save_draft(
+    request: Request,
+    draft_id: str,
+    title: str = Form(...),
+    content: str = Form(...),
+):
     if not check_auth(request):
         return RedirectResponse("/login", status_code=302)
 
@@ -114,48 +124,12 @@ async def generate_draft(request: Request, draft_id: str):
     if not draft:
         raise HTTPException(status_code=404)
 
-    from src.rewriter import generate_draft as _generate
-    result = _generate(draft, os.environ["ANTHROPIC_API_KEY"])
-
-    draft["draft_content"] = result
-    draft["status"] = "draft_generated"
+    draft["rewritten_title"] = title
+    draft["rewritten_content"] = content
+    draft["status"] = "written"
     store.save_draft(draft)
 
-    return RedirectResponse(f"/draft/{draft_id}?msg=초안이 생성되었습니다", status_code=302)
-
-
-# ── 2단계: 초안 검수 ─────────────────────────
-
-@app.post("/draft/{draft_id}/review")
-async def review_draft(request: Request, draft_id: str):
-    if not check_auth(request):
-        return RedirectResponse("/login", status_code=302)
-
-    store = get_store()
-    draft = store.load_draft(draft_id)
-    if not draft:
-        raise HTTPException(status_code=404)
-
-    if not draft.get("draft_content"):
-        return RedirectResponse(f"/draft/{draft_id}?error=초안을 먼저 생성해주세요", status_code=302)
-
-    from src.rewriter import review_draft as _review
-    result = _review(draft, draft["draft_content"], os.environ["ANTHROPIC_API_KEY"])
-
-    draft["reviewed_content"] = result
-    draft["status"] = "reviewed"
-    store.save_draft(draft)
-
-    return RedirectResponse(f"/draft/{draft_id}?msg=검수가 완료되었습니다", status_code=302)
-
-
-# ── 이미지 생성 (준비중) ──────────────────────
-
-@app.post("/draft/{draft_id}/image")
-async def generate_image(request: Request, draft_id: str):
-    if not check_auth(request):
-        return RedirectResponse("/login", status_code=302)
-    return RedirectResponse(f"/draft/{draft_id}?msg=이미지 생성 기능은 준비 중입니다", status_code=302)
+    return RedirectResponse(f"/draft/{draft_id}?msg=저장되었습니다", status_code=302)
 
 
 # ── 발행 ─────────────────────────────────────
@@ -184,7 +158,7 @@ async def publish_draft(
         draft["rewritten_content"] = content
         draft["status"] = "published"
         store.save_draft(draft)
-        return RedirectResponse("/?msg=saved", status_code=302)
+        return RedirectResponse("/?msg=저장완료(워드프레스 미연결)", status_code=302)
 
     post = publish_post(
         wp_url=wp_url, username=wp_user, app_password=wp_pass,
@@ -204,36 +178,9 @@ async def publish_draft(
         if bot_token and chat_id:
             send_message(bot_token, chat_id, f"✅ 발행: {title}\n{post.get('link', '')}")
 
-        return RedirectResponse("/?msg=published", status_code=302)
+        return RedirectResponse("/?msg=발행완료", status_code=302)
 
     return RedirectResponse(f"/draft/{draft_id}?error=발행에 실패했습니다", status_code=302)
-
-
-# ── 예약발행 ──────────────────────────────────
-
-@app.post("/draft/{draft_id}/schedule")
-async def schedule_draft(
-    request: Request,
-    draft_id: str,
-    scheduled_at: str = Form(...),
-    title: str = Form(...),
-    content: str = Form(...),
-):
-    if not check_auth(request):
-        return RedirectResponse("/login", status_code=302)
-
-    store = get_store()
-    draft = store.load_draft(draft_id)
-    if not draft:
-        raise HTTPException(status_code=404)
-
-    draft["scheduled_at"] = scheduled_at
-    draft["rewritten_title"] = title
-    draft["rewritten_content"] = content
-    draft["status"] = "scheduled"
-    store.save_draft(draft)
-
-    return RedirectResponse(f"/?msg={scheduled_at}에 예약되었습니다", status_code=302)
 
 
 # ── 제외 ─────────────────────────────────────

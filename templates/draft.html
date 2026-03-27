@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>초안 검토</title>
+  <title>글 편집</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -13,6 +13,14 @@
     <div class="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
       <a href="/" class="text-blue-600 text-sm font-medium">← 목록</a>
       <h1 class="text-base font-bold text-gray-800 truncate flex-1">{{ draft.title }}</h1>
+      <!-- 상태 배지 -->
+      {% if draft.status == 'pending' %}
+        <span class="shrink-0 bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">미작성</span>
+      {% elif draft.status == 'written' %}
+        <span class="shrink-0 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">작성완료</span>
+      {% elif draft.status == 'published' %}
+        <span class="shrink-0 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">발행됨</span>
+      {% endif %}
     </div>
   </div>
 
@@ -26,48 +34,6 @@
     <div class="bg-red-50 text-red-600 rounded-xl p-3 mb-4 text-sm">❌ {{ error }}</div>
     {% endif %}
 
-    <!-- 액션 버튼 6개 -->
-    <div class="grid grid-cols-3 gap-2 mb-5">
-
-      <!-- 초안생성 -->
-      <form method="post" action="/draft/{{ draft.id }}/generate">
-        <button type="submit"
-          class="w-full py-3 rounded-xl text-sm font-medium
-                 {% if draft.status == 'draft_generated' or draft.status == 'reviewed' %}
-                   bg-blue-100 text-blue-700
-                 {% else %}
-                   bg-blue-600 text-white hover:bg-blue-700
-                 {% endif %}">
-          ✏️ 초안생성
-        </button>
-      </form>
-
-      <!-- 초안검수 -->
-      <form method="post" action="/draft/{{ draft.id }}/review">
-        <button type="submit"
-          class="w-full py-3 rounded-xl text-sm font-medium
-                 {% if draft.status == 'reviewed' %}
-                   bg-purple-100 text-purple-700
-                 {% elif draft.draft_content %}
-                   bg-purple-600 text-white hover:bg-purple-700
-                 {% else %}
-                   bg-gray-100 text-gray-400 cursor-not-allowed
-                 {% endif %}"
-          {% if not draft.draft_content %}disabled{% endif %}>
-          🔍 초안검수
-        </button>
-      </form>
-
-      <!-- 이미지 생성 -->
-      <form method="post" action="/draft/{{ draft.id }}/image">
-        <button type="submit"
-          class="w-full py-3 rounded-xl text-sm font-medium bg-gray-100 text-gray-400">
-          🖼️ 이미지
-        </button>
-      </form>
-
-    </div>
-
     <!-- 원문 정보 -->
     <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
       <p class="text-xs text-gray-400 font-semibold uppercase mb-3">원문 정보</p>
@@ -77,7 +43,13 @@
         <div><span class="text-gray-400">카테고리:</span> {{ draft.categories }}</div>
         {% endif %}
         {% if draft.target %}
-        <div><span class="text-gray-400">대상:</span> {{ draft.target[:200] }}</div>
+        <div><span class="text-gray-400">지원대상:</span> {{ draft.target[:300] }}</div>
+        {% endif %}
+        {% if draft.content %}
+        <div><span class="text-gray-400">지원내용:</span> {{ draft.content[:500] }}</div>
+        {% endif %}
+        {% if draft.apply_method %}
+        <div><span class="text-gray-400">신청방법:</span> {{ draft.apply_method[:200] }}</div>
         {% endif %}
         {% if draft.contact %}
         <div><span class="text-gray-400">연락처:</span> {{ draft.contact }}</div>
@@ -88,65 +60,35 @@
       </div>
     </div>
 
-    <!-- 1차 초안 (생성된 경우) -->
-    {% if draft.draft_content %}
-    <div class="bg-blue-50 rounded-2xl p-4 mb-4">
-      <p class="text-xs text-blue-600 font-semibold mb-2">1차 초안</p>
-      <pre class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ draft.draft_content }}</pre>
-    </div>
-    {% endif %}
-
-    <!-- 검수 결과 (검수된 경우) -->
-    {% if draft.reviewed_content %}
-    <div class="bg-purple-50 rounded-2xl p-4 mb-4">
-      <p class="text-xs text-purple-600 font-semibold mb-2">검수 결과</p>
-      <pre class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ draft.reviewed_content }}</pre>
-    </div>
-    {% endif %}
-
-    <!-- 발행 폼 -->
-    <form method="post" action="/draft/{{ draft.id }}/publish" id="publish-form">
+    <!-- 글 편집 폼 -->
+    <form method="post" action="/draft/{{ draft.id }}/save" id="edit-form">
       <div class="bg-white rounded-2xl shadow-sm p-4 mb-3">
-        <label class="block text-xs text-gray-400 font-semibold uppercase mb-2">발행 제목</label>
+        <label class="block text-xs text-gray-400 font-semibold uppercase mb-2">제목</label>
         <input type="text" name="title"
           value="{{ draft.rewritten_title or draft.title }}"
           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
       </div>
       <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
-        <label class="block text-xs text-gray-400 font-semibold uppercase mb-2">발행 본문</label>
-        <textarea name="content" rows="12"
-          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none">{{ draft.reviewed_content or draft.draft_content or draft.content }}</textarea>
+        <label class="block text-xs text-gray-400 font-semibold uppercase mb-2">본문</label>
+        <textarea name="content" rows="14"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none">{{ draft.rewritten_content or '' }}</textarea>
       </div>
 
-      <!-- 발행 / 예약발행 버튼 -->
+      <!-- 저장 / 발행 버튼 -->
       <div class="grid grid-cols-2 gap-2 mb-3">
         <button type="submit"
           class="py-3.5 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700">
-          🚀 발행하기
+          💾 저장하기
         </button>
-        <button type="button" onclick="toggleSchedule()"
-          class="py-3.5 bg-orange-500 text-white rounded-2xl font-bold text-sm hover:bg-orange-600">
-          📅 예약발행
+        <button type="button" onclick="submitPublish()"
+          class="py-3.5 bg-green-600 text-white rounded-2xl font-bold text-sm hover:bg-green-700">
+          🚀 발행하기
         </button>
       </div>
     </form>
 
-    <!-- 예약발행 폼 (숨김) -->
-    <div id="schedule-form" class="hidden mb-3">
-      <form method="post" action="/draft/{{ draft.id }}/schedule">
-        <input type="hidden" name="title" id="schedule-title">
-        <input type="hidden" name="content" id="schedule-content">
-        <div class="bg-white rounded-2xl shadow-sm p-4 flex gap-2 items-center">
-          <input type="datetime-local" name="scheduled_at"
-            class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
-          <button type="submit" class="shrink-0 bg-orange-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium">
-            예약
-          </button>
-        </div>
-      </form>
-    </div>
-
     <!-- 제외 버튼 -->
+    {% if draft.status != 'published' %}
     <form method="post" action="/draft/{{ draft.id }}/exclude"
           onsubmit="return confirm('이 항목을 제외하시겠습니까?')">
       <button type="submit"
@@ -154,20 +96,15 @@
         🚫 제외
       </button>
     </form>
+    {% endif %}
 
   </div>
 
   <script>
-    function toggleSchedule() {
-      const form = document.getElementById('schedule-form');
-      form.classList.toggle('hidden');
-      if (!form.classList.contains('hidden')) {
-        // 현재 입력값을 예약 폼에 복사
-        document.getElementById('schedule-title').value =
-          document.querySelector('[name="title"]').value;
-        document.getElementById('schedule-content').value =
-          document.querySelector('[name="content"]').value;
-      }
+    function submitPublish() {
+      const form = document.getElementById('edit-form');
+      form.action = '/draft/{{ draft.id }}/publish';
+      form.submit();
     }
   </script>
 

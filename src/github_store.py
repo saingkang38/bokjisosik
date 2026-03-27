@@ -78,6 +78,10 @@ class GitHubStore:
 
     def list_pending(self) -> list[dict]:
         """대기 중인 초안 목록을 반환합니다."""
+        return [d for d in self.list_all() if d.get("status") == "pending"]
+
+    def list_all(self) -> list[dict]:
+        """제외된 항목을 제외한 모든 글 목록을 반환합니다."""
         response = requests.get(
             f"{self.base_url}/contents/drafts",
             headers=self.headers,
@@ -93,7 +97,7 @@ class GitHubStore:
 
             draft_id = file_info["name"].replace(".json", "")
             draft = self.load_draft(draft_id)
-            if draft and draft.get("status") == "pending":
+            if draft and draft.get("status") != "excluded":
                 drafts.append(draft)
 
         return sorted(drafts, key=lambda x: x.get("fetched_at", ""))
