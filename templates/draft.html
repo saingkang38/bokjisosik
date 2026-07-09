@@ -18,6 +18,8 @@
         <span class="shrink-0 bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">미작성</span>
       {% elif draft.status == 'written' %}
         <span class="shrink-0 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">작성완료</span>
+      {% elif draft.status == 'wp_draft' %}
+        <span class="shrink-0 bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">WP초안</span>
       {% elif draft.status == 'published' %}
         <span class="shrink-0 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">발행됨</span>
       {% endif %}
@@ -60,6 +62,48 @@
       </div>
     </div>
 
+    <!-- AI 초안 생성 -->
+    <form method="post" action="/draft/{{ draft.id }}/generate" id="generate-form"
+          onsubmit="startGenerate()" class="mb-4">
+      <button type="submit" id="generate-btn"
+        class="w-full py-3.5 bg-violet-600 text-white rounded-2xl font-bold text-sm hover:bg-violet-700">
+        🤖 {% if draft.rewritten_content %}AI 초안 다시 생성{% else %}AI 초안 생성{% endif %}
+      </button>
+      <p class="text-xs text-gray-400 text-center mt-1.5">원문 데이터로 글을 쓰고, 원문과 대조 검수까지 자동으로 합니다 (약 1분)</p>
+    </form>
+
+    <!-- 자동 검수 결과 -->
+    {% if draft.check_results %}
+    <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
+      <p class="text-xs text-gray-400 font-semibold uppercase mb-3">자동 검수 결과</p>
+      <div class="space-y-2">
+        {% for check in draft.check_results %}
+        <div class="flex items-start gap-2 text-sm">
+          {% if check.level == 'pass' %}
+            <span class="shrink-0">✅</span>
+          {% elif check.level == 'warn' %}
+            <span class="shrink-0">⚠️</span>
+          {% else %}
+            <span class="shrink-0">❌</span>
+          {% endif %}
+          <div>
+            <span class="font-medium text-gray-700">{{ check.name }}</span>
+            <span class="text-gray-500"> — {{ check.detail }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- AI 검수 메모 -->
+    {% if draft.review_notes and draft.review_notes != '없음' %}
+    <div class="bg-amber-50 rounded-2xl p-4 mb-4">
+      <p class="text-xs text-amber-600 font-semibold uppercase mb-2">AI 검수 메모 (발행 전 확인)</p>
+      <pre class="text-sm text-amber-800 whitespace-pre-wrap font-sans">{{ draft.review_notes }}</pre>
+    </div>
+    {% endif %}
+
     <!-- 글 편집 폼 -->
     <form method="post" action="/draft/{{ draft.id }}/save" id="edit-form">
       <div class="bg-white rounded-2xl shadow-sm p-4 mb-3">
@@ -70,21 +114,28 @@
       </div>
       <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
         <label class="block text-xs text-gray-400 font-semibold uppercase mb-2">본문</label>
-        <textarea name="content" rows="14"
+        <textarea name="content" rows="24"
           class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none">{{ draft.rewritten_content or '' }}</textarea>
       </div>
 
-      <!-- 저장 / 발행 버튼 -->
-      <div class="grid grid-cols-2 gap-2 mb-3">
+      <!-- 저장 / WP초안 / 발행 버튼 -->
+      <div class="grid grid-cols-3 gap-2 mb-3">
         <button type="submit"
           class="py-3.5 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700">
-          💾 저장하기
+          💾 저장
+        </button>
+        <button type="button" onclick="submitWpDraft()"
+          class="py-3.5 bg-purple-600 text-white rounded-2xl font-bold text-sm hover:bg-purple-700">
+          📝 WP 초안
         </button>
         <button type="button" onclick="submitPublish()"
           class="py-3.5 bg-green-600 text-white rounded-2xl font-bold text-sm hover:bg-green-700">
-          🚀 발행하기
+          🚀 바로 발행
         </button>
       </div>
+      <p class="text-xs text-gray-400 text-center mb-3">
+        WP 초안: 워드프레스 초안함에 올라가고, 발행은 워드프레스 관리자에서 직접 합니다
+      </p>
     </form>
 
     <!-- 제외 버튼 -->
@@ -102,9 +153,21 @@
 
   <script>
     function submitPublish() {
+      if (!confirm('워드프레스에 바로 발행합니다. 계속할까요?\n(초안으로 올려서 확인 후 발행하려면 "WP 초안"을 누르세요)')) return;
       const form = document.getElementById('edit-form');
       form.action = '/draft/{{ draft.id }}/publish';
       form.submit();
+    }
+    function submitWpDraft() {
+      const form = document.getElementById('edit-form');
+      form.action = '/draft/{{ draft.id }}/wp-draft';
+      form.submit();
+    }
+    function startGenerate() {
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 생성 중입니다… 페이지를 닫지 마세요 (최대 1분)';
+      btn.classList.add('opacity-60');
     }
   </script>
 

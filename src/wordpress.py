@@ -3,8 +3,28 @@ WordPress REST API를 통해 포스트를 발행합니다.
 Application Password 방식으로 인증합니다.
 """
 
+from __future__ import annotations
+
+import markdown as md
 import requests
 from requests.auth import HTTPBasicAuth
+
+
+def build_post_html(markdown_body: str, detail_link: str = "") -> str:
+    """마크다운 본문을 워드프레스용 HTML로 변환하고 출처를 붙입니다.
+
+    워드프레스 REST API의 content는 HTML을 기대하므로,
+    마크다운을 그대로 올리면 '## 제목' 같은 기호가 노출됩니다.
+    """
+    html = md.markdown(markdown_body, extensions=["tables", "nl2br"])
+
+    footer = "<hr />\n<p><em>본 글은 공공데이터(복지로 제공 정보)를 바탕으로 작성되었습니다. "
+    footer += "정책 내용은 변경될 수 있으니, 신청 전 반드시 원문과 최신 공고문을 확인하세요.</em>"
+    if detail_link:
+        footer += f'<br /><a href="{detail_link}" target="_blank" rel="noopener">👉 복지로에서 정책 원문 보기</a>'
+    footer += "</p>"
+
+    return f"{html}\n{footer}"
 
 
 def publish_post(

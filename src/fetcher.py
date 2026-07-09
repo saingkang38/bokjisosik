@@ -4,6 +4,8 @@
 - 상세: https://apis.data.go.kr/B554287/NationalWelfareInformationsV001/NationalWelfaredetailedV001
 """
 
+from __future__ import annotations
+
 import requests
 import hashlib
 import time

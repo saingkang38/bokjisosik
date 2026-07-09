@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- 복지소식 AI 초안 자동 생성 (매일 오전 10시 30분)
+       ⚠️ 아래 "여기에사용자이름"을 실제 맥 사용자 이름으로 바꾸세요.
+       (터미널에서 whoami 를 입력하면 나옵니다)
+       수집(GitHub Actions, 오전 10시)이 끝난 뒤 실행되도록 10:30으로 설정했습니다. -->
+  <key>Label</key>
+  <string>com.bokjisosik.generate</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/여기에사용자이름/bokjisosik/run_generate.sh</string>
+  </array>
+
+  <!-- 매일 오전 10시 30분 실행 -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>10</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/여기에사용자이름/bokjisosik/logs/generate.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/여기에사용자이름/bokjisosik/logs/generate.log</string>
+</dict>
+</plist>

@@ -31,3 +31,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
         run: python main.py --fetch
+
+      # AI 초안 생성은 맥북에서 Claude Code(Max 요금제 포함)로 실행합니다.
+      # → setup/com.bokjisosik.generate.plist 참고
+      # API 키로 클라우드에서 생성하고 싶어지면 여기에 generate 단계를 다시 추가하면 됩니다.

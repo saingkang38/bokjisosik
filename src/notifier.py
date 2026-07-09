@@ -3,6 +3,8 @@ GitHub Actions에서 실행 후 텔레그램으로 초안을 전송합니다.
 (python-telegram-bot 없이 requests만 사용 - Actions 환경 경량화)
 """
 
+from __future__ import annotations
+
 import requests
 
 

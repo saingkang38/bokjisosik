@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>지침 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- 헤더 -->
+  <div class="bg-white border-b sticky top-0 z-10">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
+      <a href="/" class="text-blue-600 text-sm font-medium">← 목록</a>
+      <h1 class="text-base font-bold text-gray-800">📋 AI 글 작성 지침</h1>
+    </div>
+  </div>
+
+  <div class="max-w-3xl mx-auto px-4 py-5">
+
+    {% if msg %}
+    <div class="bg-green-50 text-green-700 rounded-xl p-3 mb-4 text-sm">✅ {{ msg }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="bg-red-50 text-red-600 rounded-xl p-3 mb-4 text-sm">❌ {{ error }}</div>
+    {% endif %}
+
+    <div class="bg-blue-50 rounded-2xl p-4 mb-4 text-sm text-blue-800 leading-relaxed">
+      이 지침은 AI가 글을 쓸 때마다 함께 전달되는 작업 설명서입니다.
+      저장하면 <b>다음에 생성하는 글부터 바로 적용</b>됩니다.<br>
+      문체, 글 구조, 금지 표현을 자유롭게 고치되,
+      <b>"## 1차 초안 생성 프롬프트", "## 2단계 검수 프롬프트", "## 금지 표현"</b> 제목 줄은 지우지 마세요.
+    </div>
+
+    <form method="post" action="/guidelines">
+      <div class="bg-white rounded-2xl shadow-sm p-4 mb-4">
+        <textarea name="content" rows="32"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400">{{ guidelines }}</textarea>
+      </div>
+      <button type="submit"
+        class="w-full py-3.5 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700">
+        💾 지침 저장
+      </button>
+    </form>
+
+  </div>
+</body>
+</html>

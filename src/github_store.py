@@ -3,6 +3,8 @@ GitHub 저장소를 초안(draft) 저장소로 사용합니다.
 GitHub Actions와 Railway 봇 모두 이 모듈을 통해 초안에 접근합니다.
 """
 
+from __future__ import annotations
+
 import json
 import base64
 import requests
@@ -101,6 +103,35 @@ class GitHubStore:
                 drafts.append(draft)
 
         return sorted(drafts, key=lambda x: x.get("fetched_at", ""))
+
+    def load_text_file(self, path: str) -> str | None:
+        """저장소의 텍스트 파일(예: prompts/guidelines.md)을 읽습니다."""
+        response = requests.get(
+            f"{self.base_url}/contents/{path}",
+            headers=self.headers,
+        )
+        if response.status_code != 200:
+            return None
+        return base64.b64decode(response.json()["content"]).decode()
+
+    def save_text_file(self, path: str, content: str, message: str) -> bool:
+        """저장소의 텍스트 파일을 저장(커밋)합니다."""
+        encoded = base64.b64encode(content.encode()).decode()
+        payload = {"message": message, "content": encoded}
+
+        sha = self._get_file_sha(path)
+        if sha:
+            payload["sha"] = sha
+
+        response = requests.put(
+            f"{self.base_url}/contents/{path}",
+            headers=self.headers,
+            json=payload,
+        )
+        success = response.status_code in (200, 201)
+        if not success:
+            print(f"[github_store] 파일 저장 실패 ({response.status_code}): {response.text[:200]}")
+        return success
 
     def _get_file_sha(self, path: str) -> str | None:
         """파일의 SHA를 가져옵니다 (업데이트 시 필요)."""

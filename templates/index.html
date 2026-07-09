@@ -12,7 +12,10 @@
   <div class="bg-white border-b sticky top-0 z-10">
     <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
       <h1 class="text-xl font-bold text-blue-600">복지소식</h1>
-      <a href="/logout" class="text-sm text-gray-400">로그아웃</a>
+      <div class="flex items-center gap-4">
+        <a href="/guidelines" class="text-sm text-gray-500 font-medium">📋 지침 관리</a>
+        <a href="/logout" class="text-sm text-gray-400">로그아웃</a>
+      </div>
     </div>
   </div>
 
@@ -24,19 +27,24 @@
     {% endif %}
 
     <!-- 통계 카드 -->
-    <div class="grid grid-cols-3 gap-3 mb-5">
+    <div class="grid grid-cols-4 gap-2 mb-5">
       <a href="/?status=pending&category={{ current_category }}"
-         class="bg-white rounded-2xl shadow-sm p-4 text-center {% if current_status == 'pending' %}ring-2 ring-yellow-400{% endif %}">
+         class="bg-white rounded-2xl shadow-sm p-3 text-center {% if current_status == 'pending' %}ring-2 ring-yellow-400{% endif %}">
         <p class="text-xs text-gray-400 mb-1">미작성</p>
         <p class="text-2xl font-bold text-yellow-500">{{ count_pending }}</p>
       </a>
       <a href="/?status=written&category={{ current_category }}"
-         class="bg-white rounded-2xl shadow-sm p-4 text-center {% if current_status == 'written' %}ring-2 ring-blue-400{% endif %}">
+         class="bg-white rounded-2xl shadow-sm p-3 text-center {% if current_status == 'written' %}ring-2 ring-blue-400{% endif %}">
         <p class="text-xs text-gray-400 mb-1">작성완료</p>
         <p class="text-2xl font-bold text-blue-500">{{ count_written }}</p>
       </a>
+      <a href="/?status=wp_draft&category={{ current_category }}"
+         class="bg-white rounded-2xl shadow-sm p-3 text-center {% if current_status == 'wp_draft' %}ring-2 ring-purple-400{% endif %}">
+        <p class="text-xs text-gray-400 mb-1">WP초안</p>
+        <p class="text-2xl font-bold text-purple-500">{{ count_wp_draft }}</p>
+      </a>
       <a href="/?status=published&category={{ current_category }}"
-         class="bg-white rounded-2xl shadow-sm p-4 text-center {% if current_status == 'published' %}ring-2 ring-green-400{% endif %}">
+         class="bg-white rounded-2xl shadow-sm p-3 text-center {% if current_status == 'published' %}ring-2 ring-green-400{% endif %}">
         <p class="text-xs text-gray-400 mb-1">발행됨</p>
         <p class="text-2xl font-bold text-green-500">{{ count_published }}</p>
       </a>
@@ -73,6 +81,8 @@
               <span class="shrink-0 bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">미작성</span>
             {% elif draft.status == 'written' %}
               <span class="shrink-0 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">작성완료</span>
+            {% elif draft.status == 'wp_draft' %}
+              <span class="shrink-0 bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full">WP초안</span>
             {% elif draft.status == 'published' %}
               <span class="shrink-0 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">발행됨</span>
             {% elif draft.status == 'scheduled' %}
