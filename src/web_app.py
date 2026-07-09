@@ -3,6 +3,10 @@
 """
 
 import os
+
+from dotenv import load_dotenv
+
+load_dotenv()  # 맥북 등 로컬 서버에서 .env 파일의 설정을 읽음
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
