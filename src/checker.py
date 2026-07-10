@@ -33,6 +33,36 @@ def _extract_numbers(text: str) -> list[str]:
     return [m.group(0).strip() for m in _NUMBER_PATTERN.finditer(text)]
 
 
+def _keyword_variants(draft: dict) -> list[str]:
+    """정책 원문 제목에서 핵심 키워드(정책 이름)와 그 첫 단어를 뽑는다.
+
+    예: "(산재근로자)사회심리재활지원" → ["산재근로자사회심리재활지원", "사회심리재활지원"]
+    SEO 위치 검사에서 이 중 하나라도 매칭되면 키워드가 있는 것으로 본다.
+    """
+    raw = draft.get("title", "")
+    raw = re.sub(r"[\(\[（【].*?[\)\]）】]", " ", raw)  # 괄호 안 수식어 제거
+    full = _normalize(raw)
+    variants = []
+    if len(full) >= 2:
+        variants.append(full)
+    tokens = [t for t in re.split(r"[\s,·/~-]+", raw.strip()) if len(t) >= 2]
+    for t in tokens:
+        tn = _normalize(t)
+        if tn and tn not in variants:
+            variants.append(tn)
+    return variants
+
+
+def _first_paragraph(body: str) -> str:
+    """본문에서 첫 소제목(##) 이전의 도입부만 잘라낸다."""
+    lines = []
+    for line in body.strip().splitlines():
+        if line.strip().startswith("#"):
+            break
+        lines.append(line)
+    return "\n".join(lines).strip() or body.strip()[:200]
+
+
 def run_checks(draft: dict, title: str, body: str, banned_words: list[str]) -> list[dict]:
     """글을 검수하고 검사 결과 목록을 반환합니다."""
     results = []
@@ -122,7 +152,52 @@ def run_checks(draft: dict, title: str, body: str, banned_words: list[str]) -> l
     else:
         results.append({"name": "본문 분량", "level": "pass", "detail": f"본문 {body_length}자."})
 
-    # 6. 출처 링크 확보 여부
+    # 6. SEO — 제목에 핵심 키워드가 앞부분에 있는가
+    variants = _keyword_variants(draft)
+    title_norm = _normalize(title)
+    kw_pos = -1
+    for v in variants:
+        p = title_norm.find(v)
+        if p != -1:
+            kw_pos = p if kw_pos == -1 else min(kw_pos, p)
+    if not variants:
+        pass  # 원문 제목이 없으면 검사 생략
+    elif kw_pos == -1:
+        results.append({
+            "name": "SEO 제목 키워드",
+            "level": "warn",
+            "detail": "제목에 정책 이름(핵심 키워드)이 보이지 않습니다. 검색 노출을 위해 정책명을 제목에 넣으세요.",
+        })
+    elif kw_pos <= max(2, len(title_norm) // 2):
+        results.append({
+            "name": "SEO 제목 키워드",
+            "level": "pass",
+            "detail": "핵심 키워드가 제목 앞부분에 있습니다 (검색 노출·클릭에 유리).",
+        })
+    else:
+        results.append({
+            "name": "SEO 제목 키워드",
+            "level": "warn",
+            "detail": "핵심 키워드가 제목 뒤쪽에 있습니다. 정책명을 제목 맨 앞으로 옮기는 것을 권장합니다.",
+        })
+
+    # 7. SEO — 도입 첫 문단에 핵심 키워드가 있는가
+    if variants:
+        intro_norm = _normalize(_first_paragraph(body))
+        if any(v in intro_norm for v in variants):
+            results.append({
+                "name": "SEO 도입부 키워드",
+                "level": "pass",
+                "detail": "도입 첫 문단에 핵심 키워드가 들어 있습니다.",
+            })
+        else:
+            results.append({
+                "name": "SEO 도입부 키워드",
+                "level": "warn",
+                "detail": "도입 첫 문단에 정책 이름이 없습니다. 첫 2~3문장 안에 자연스럽게 넣으면 검색에 유리합니다.",
+            })
+
+    # 8. 출처 링크 확보 여부
     if draft.get("detail_link"):
         results.append({
             "name": "출처 링크",
