@@ -134,7 +134,7 @@ def _call_claude_code(system_prompt, user_content):
 
 def _source_text(draft):
     """정책 원문 데이터를 프롬프트용 텍스트로 만듭니다."""
-    return f"""[원문 데이터]
+    base = f"""[원문 데이터]
 서비스명: {draft.get('title', '')}
 소관부처: {draft.get('department', '')}
 카테고리: {draft.get('categories', '')}
@@ -146,6 +146,18 @@ def _source_text(draft):
 연락처: {draft.get('contact', '')}
 복지로 원문 링크: {draft.get('detail_link', '')}
 """
+
+    extra = (draft.get("extra_source") or "").strip()
+    if extra:
+        base += f"""
+[추가 공식 자료 — 규정/공고문 원문]
+아래는 이 정책의 공식 규정·공고문에서 가져온 더 상세한 자료다.
+위 [원문 데이터]와 함께, 이 자료에 있는 사실(대상·금액·조건·절차)까지 활용해 더 깊고 정확한 글을 써라.
+단, 여기에 없는 내용을 지어내지 마라. 사실 보존 원칙은 동일하게 적용된다.
+
+{extra[:12000]}
+"""
+    return base
 
 
 def _extract_tag(text, tag):
@@ -204,4 +216,72 @@ def generate_article(draft, api_key=None, store=None):
 
     except Exception as e:
         print(f"[rewriter] 글 생성 실패: {e}")
+        return {"title": "", "body": "", "notes": "", "engine": engine, "error": str(e)}
+
+
+_BUNDLE_PROMPT = """너는 "복지소식" 블로그의 정보성 콘텐츠 작성 엔진이다.
+여러 개의 복지 정책을 하나로 묶어, 특정 상황에 놓인 독자가 "나는 어떤 지원을 받을 수 있나"를 한 번에 파악하도록 돕는 '묶음 안내 글'을 쓴다.
+이런 묶음 글은 개별 정책 글보다 검색·신뢰 면에서 가치가 크다. 여러 정책을 상황 중심으로 엮는 것이 핵심이다.
+
+[최우선 원칙 — 사실 보존]
+1. 아래 제공된 정책 목록의 정보만 사용한다. 없는 사실(금액·대상·조건)을 지어내지 마라.
+2. 각 정책의 자세한 내용은 링크로 넘긴다. 이 글은 "어떤 지원이 있는지 한눈에 보여주고, 자세한 건 링크로" 안내하는 역할이다.
+3. 금액·수치는 제공된 요약에 있는 것만, 원문 표기 그대로 쓴다.
+
+[문체]
+- "~합니다" 체. 옆에서 짚어주듯 따뜻하고 읽기 쉽게.
+- 독자를 상황으로 부른다. 공공문서 말투 금지.
+- 톤·공감은 자유롭게, 정책 사실은 정확하게.
+
+[구조] 마크다운으로 쓰고 소제목은 ## 로 시작한다. (워드프레스에서 목차가 자동 생성된다)
+1. 도입 (소제목 없이 3~4문장): 독자가 처한 상황으로 시작해, "이럴 때 받을 수 있는 지원을 한데 모았다"고 안내한다.
+2. ## 한눈에 보기 : 정책 이름과 핵심 혜택을 마크다운 표로 정리한다.
+3. 정책마다 ## 소제목 : 각 정책을 2~4문장으로 소개한다 — 누가 받는지, 무엇을 받는지, 그리고 반드시 "[자세히 보기](링크)" 형식으로 해당 정책 링크를 넣는다.
+4. ## 어떤 것부터 신청할까요 : 상황별로 우선순위나 팁을 간단히 정리한다(제공된 정보 범위 내에서만).
+
+[출력 형식] 태그 밖에 다른 말을 쓰지 마라.
+<title>글 제목 (핵심 키워드를 앞에, 40자 이내)</title>
+<article>
+마크다운 본문
+</article>
+<notes>
+- 사람이 확인해야 할 항목. 없으면 "없음".
+</notes>
+"""
+
+
+def generate_bundle(theme, policies, api_key=None, store=None):
+    """여러 정책을 하나의 상황별 묶음 안내 글로 생성한다.
+
+    theme: 묶음 주제(예: "출산·육아 지원", "노인 돌봄")
+    policies: [{"title","summary","target","link"}] 목록
+    """
+    engine = available_engine(api_key or "")
+    if not engine:
+        return {"title": "", "body": "", "notes": "", "engine": "",
+                "error": "생성 엔진이 없습니다."}
+
+    lines = [f"[묶음 주제] {theme}", "", "[포함할 정책 목록]"]
+    for i, p in enumerate(policies, 1):
+        lines.append(f"""
+{i}. {p.get('title', '')}
+   - 대상: {p.get('target', '')[:200]}
+   - 요약: {p.get('summary', '') or p.get('content', '')[:300]}
+   - 링크: {p.get('link', '')}""")
+    user_content = "\n".join(lines)
+
+    def call(system_prompt, content):
+        if engine == "api":
+            return _call_api(api_key, system_prompt, content, max_tokens=4000)
+        return _call_claude_code(system_prompt, content)
+
+    try:
+        print(f"[rewriter] 묶음글 생성 시작 ({engine}): {theme} ({len(policies)}개 정책)")
+        out = call(_BUNDLE_PROMPT, user_content)
+        title = _extract_tag(out, "title") or f"{theme} 총정리"
+        body = _extract_tag(out, "article") or out
+        notes = _extract_tag(out, "notes")
+        return {"title": title, "body": body, "notes": notes, "engine": engine, "error": None}
+    except Exception as e:
+        print(f"[rewriter] 묶음글 생성 실패: {e}")
         return {"title": "", "body": "", "notes": "", "engine": engine, "error": str(e)}

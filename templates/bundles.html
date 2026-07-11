@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>묶음글 만들기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <div class="bg-white border-b sticky top-0 z-10">
+    <div class="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+      <a href="/" class="text-blue-600 text-sm font-medium">← 목록</a>
+      <h1 class="text-base font-bold text-gray-800">🧩 상황별 묶음글 만들기</h1>
+    </div>
+  </div>
+
+  <div class="max-w-2xl mx-auto px-4 py-5">
+
+    {% if msg %}<div class="bg-green-50 text-green-700 rounded-xl p-3 mb-4 text-sm">✅ {{ msg }}</div>{% endif %}
+    {% if error %}<div class="bg-red-50 text-red-600 rounded-xl p-3 mb-4 text-sm">❌ {{ error }}</div>{% endif %}
+
+    <div class="bg-blue-50 rounded-2xl p-4 mb-4 text-sm text-blue-800 leading-relaxed">
+      같은 카테고리의 여러 정책을 하나의 안내 글로 묶습니다.
+      "출산 지원 총정리"처럼 상황 중심으로 엮으면, 개별 정책 글보다 검색·신뢰 면에서 가치가 큽니다.
+      각 정책의 자세한 내용은 링크로 연결됩니다.
+    </div>
+
+    {% if categories %}
+      {% for cat, count in categories %}
+      <form method="post" action="/bundles/generate" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='⏳ 생성 중… (최대 1분)'">
+        <input type="hidden" name="category" value="{{ cat }}">
+        <div class="bg-white rounded-2xl shadow-sm mb-3 flex items-center justify-between px-4 py-3">
+          <div>
+            <p class="font-semibold text-gray-800">{{ cat }}</p>
+            <p class="text-xs text-gray-400">정책 {{ count }}개</p>
+          </div>
+          <button type="submit"
+            class="shrink-0 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 disabled:opacity-60">
+            묶음글 생성
+          </button>
+        </div>
+      </form>
+      {% endfor %}
+    {% else %}
+      <div class="bg-white rounded-2xl shadow-sm p-10 text-center text-gray-400">
+        묶을 수 있는 카테고리가 없습니다.
+      </div>
+    {% endif %}
+
+  </div>
+</body>
+</html>

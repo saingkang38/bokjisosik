@@ -1,0 +1,28 @@
+/Users/jeongtaeho/Documents/bokjisosik/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [55791]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58828 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58852 - "GET / HTTP/1.1" 302 Found
+INFO:     127.0.0.1:58852 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58852 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58853 - "POST /login HTTP/1.1" 302 Found
+INFO:     127.0.0.1:58853 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58900 - "GET / HTTP/1.1" 302 Found
+INFO:     127.0.0.1:58900 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58900 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58865 - "GET /draft/a3883169449a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52545 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53533 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53534 - "POST /login HTTP/1.1" 302 Found
+INFO:     127.0.0.1:53534 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53775 - "GET /draft/a3883169449a HTTP/1.1" 200 OK
+[rewriter] 초안 생성 시작 (claude_code): (산재근로자)사회심리재활지원
+[rewriter] 검수 시작 (claude_code): 산재근로자 사회심리재활지원, 5가지 서비스와 신청 방법
+INFO:     127.0.0.1:53777 - "POST /draft/a3883169449a/generate HTTP/1.1" 302 Found
+INFO:     127.0.0.1:53777 - "GET /draft/a3883169449a?msg=AI%20%EC%B4%88%EC%95%88%EC%9D%B4%20%EC%83%9D%EC%84%B1%EB%90%98%EC%97%88%EC%8A%B5%EB%8B%88%EB%8B%A4%20(%EA%B2%80%EC%88%98:%20%ED%86%B5%EA%B3%BC%206%20%C2%B7%20%EC%A3%BC%EC%9D%98%200%20%C2%B7%20%EC%8B%A4%ED%8C%A8%200) HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61807 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61809 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61822 - "GET / HTTP/1.1" 200 OK

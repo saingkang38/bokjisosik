@@ -16,11 +16,11 @@ _NUMBER_PATTERN = re.compile(
     r"\d[\d,]*(?:\.\d+)?\s*(?:원|만원|억원|천원|%|퍼센트|세|년|월|일|명|가구|인|회|개월|주|시간|점|㎡|평|호|건)"
 )
 
-# 필수 소제목 (띄어쓰기 변형 허용)
+# 필수 소제목 — 정식 표기와, 지침이 허용한 자연스러운 소제목 변형을 함께 인정
 _REQUIRED_SECTIONS = [
-    ("지원 대상", r"지원\s*대상"),
-    ("지원 내용", r"지원\s*내용"),
-    ("신청 방법", r"신청\s*방법"),
+    ("지원 대상", r"지원\s*대상|누가.{0,8}받|대상.{0,4}(누구|누가)"),
+    ("지원 내용", r"지원\s*내용|무엇을.{0,8}받|얼마나.{0,8}받"),
+    ("신청 방법", r"신청\s*방법|어떻게.{0,8}신청|신청.{0,4}방법"),
 ]
 
 
@@ -75,6 +75,7 @@ def run_checks(draft: dict, title: str, body: str, banned_words: list[str]) -> l
         draft.get("summary", ""),
         draft.get("apply_method", ""),
         draft.get("contact", ""),
+        draft.get("extra_source", ""),  # 규정·공고문을 넣은 경우 그 숫자도 정당한 원본으로 인정
     ])
     source_normalized = _normalize(source)
     article_text = f"{title}\n{body}"

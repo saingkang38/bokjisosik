@@ -2,6 +2,7 @@
 복지소식 웹 대시보드
 """
 
+import hashlib
 import os
 
 from dotenv import load_dotenv
@@ -13,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from src.github_store import GitHubStore
 from src.wordpress import publish_post, build_post_html
 from src.notifier import send_message
-from src.rewriter import generate_article, available_engine
+from src.rewriter import generate_article, generate_bundle, available_engine
 from src.checker import run_checks, summarize_checks
 from src.guidelines import load_guidelines_text, save_guidelines_text, parse_guidelines
 
@@ -143,7 +144,7 @@ async def save_draft(
 # ── AI 초안 생성 ─────────────────────────────
 
 @app.post("/draft/{draft_id}/generate")
-def generate_ai_draft(request: Request, draft_id: str):
+def generate_ai_draft(request: Request, draft_id: str, extra_source: str = Form("")):
     # sync 함수로 두면 FastAPI가 스레드풀에서 실행해,
     # 생성이 오래 걸려도 대시보드의 다른 화면이 멈추지 않는다
     if not check_auth(request):
@@ -157,6 +158,9 @@ def generate_ai_draft(request: Request, draft_id: str):
     draft = store.load_draft(draft_id)
     if not draft:
         raise HTTPException(status_code=404)
+
+    # 붙여넣은 규정/공고문 원문을 저장해두고 생성에 활용 (깊이 보강)
+    draft["extra_source"] = extra_source
 
     result = generate_article(draft, api_key, store=store)
     if result["error"]:
@@ -251,6 +255,95 @@ async def save_guidelines(request: Request, content: str = Form(...)):
     if save_guidelines_text(content, store):
         return RedirectResponse("/guidelines?msg=저장되었습니다. 다음 글부터 바로 적용됩니다", status_code=302)
     return RedirectResponse("/guidelines?error=저장에 실패했습니다", status_code=302)
+
+
+# ── 상황별 묶음글 ─────────────────────────────
+
+@app.get("/bundles", response_class=HTMLResponse)
+async def bundles_page(request: Request):
+    if not check_auth(request):
+        return RedirectResponse("/login", status_code=302)
+
+    store = get_store()
+    all_drafts = store.list_all()
+
+    # 카테고리별로 묶을 수 있는 정책 개수 집계 (제외/묶음글 자체는 제외)
+    cats = {}
+    for d in all_drafts:
+        if d.get("is_bundle"):
+            continue
+        for cat in d.get("categories", "").split(","):
+            cat = cat.strip()
+            if cat:
+                cats[cat] = cats.get(cat, 0) + 1
+    categories = sorted(cats.items(), key=lambda x: -x[1])
+
+    return templates.TemplateResponse(request=request, name="bundles.html", context={
+        "categories": categories,
+        "msg": request.query_params.get("msg", ""),
+        "error": request.query_params.get("error", ""),
+    })
+
+
+@app.post("/bundles/generate")
+def generate_bundle_article(request: Request, category: str = Form(...)):
+    if not check_auth(request):
+        return RedirectResponse("/login", status_code=302)
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not available_engine(api_key):
+        return RedirectResponse("/bundles?error=생성 엔진이 없습니다", status_code=302)
+
+    store = get_store()
+    members = [
+        d for d in store.list_all()
+        if not d.get("is_bundle") and category in d.get("categories", "")
+    ]
+    if len(members) < 2:
+        return RedirectResponse(f"/bundles?error={category} 카테고리에 묶을 정책이 2개 이상 필요합니다", status_code=302)
+
+    members = members[:12]  # 너무 많으면 상한
+    policies = [{
+        "title": m.get("title", ""),
+        "summary": m.get("summary", ""),
+        "content": m.get("content", ""),
+        "target": m.get("target", ""),
+        "link": m.get("detail_link", ""),
+    } for m in members]
+
+    result = generate_bundle(category, policies, api_key, store=store)
+    if result["error"]:
+        return RedirectResponse(f"/bundles?error=묶음글 생성 실패: {result['error'][:120]}", status_code=302)
+
+    # 검수용 원본: 멤버 정책들의 데이터를 합쳐 숫자 대조가 되게 한다
+    merged_source = {
+        "title": category,
+        "target": " ".join(m.get("target", "") for m in members),
+        "content": " ".join(m.get("content", "") for m in members),
+        "summary": " ".join(m.get("summary", "") for m in members),
+        "criteria": "", "apply_method": "", "contact": "",
+        "detail_link": "",
+    }
+    banned = parse_guidelines(load_guidelines_text(store))["banned_words"]
+    checks = run_checks(merged_source, result["title"], result["body"], banned)
+
+    bundle_id = "bundle_" + hashlib.md5(category.encode()).hexdigest()[:8]
+    bundle = store.load_draft(bundle_id) or {"id": bundle_id, "fetched_at": ""}
+    bundle.update({
+        "id": bundle_id,
+        "is_bundle": True,
+        "status": "written",
+        "title": f"[묶음] {category}",
+        "department": f"{len(members)}개 정책 묶음",
+        "categories": category,
+        "rewritten_title": result["title"],
+        "rewritten_content": result["body"],
+        "review_notes": result["notes"],
+        "check_results": checks,
+        "detail_link": "",
+    })
+    store.save_draft(bundle)
+    return RedirectResponse(f"/draft/{bundle_id}?msg={category} 묶음글이 생성되었습니다", status_code=302)
 
 
 # ── 발행 ─────────────────────────────────────

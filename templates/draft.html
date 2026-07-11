@@ -65,6 +65,16 @@
     <!-- AI 초안 생성 -->
     <form method="post" action="/draft/{{ draft.id }}/generate" id="generate-form"
           onsubmit="startGenerate()" class="mb-4">
+      <details class="bg-white rounded-2xl shadow-sm p-4 mb-3">
+        <summary class="text-sm font-medium text-gray-600 cursor-pointer">📎 추가 자료 넣기 (선택) — 규정·공고문 원문</summary>
+        <p class="text-xs text-gray-400 mt-2 mb-2">
+          복지로에 없는 더 깊은 내용(규정·공고문 원문)을 여기에 붙여넣으면, AI가 그 내용까지 활용해
+          복지로보다 자세한 글을 씁니다. 없으면 비워두세요.
+        </p>
+        <textarea name="extra_source" rows="6"
+          placeholder="예: 산재근로자 일상복귀지원규정 제5조(심리상담 지원) ... 규정 전문을 붙여넣으세요"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none">{{ draft.extra_source or '' }}</textarea>
+      </details>
       <button type="submit" id="generate-btn"
         class="w-full py-3.5 bg-violet-600 text-white rounded-2xl font-bold text-sm hover:bg-violet-700">
         🤖 {% if draft.rewritten_content %}AI 초안 다시 생성{% else %}AI 초안 생성{% endif %}

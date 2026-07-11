@@ -5,18 +5,77 @@ Application Password 방식으로 인증합니다.
 
 from __future__ import annotations
 
+import re
+
 import markdown as md
 import requests
 from requests.auth import HTTPBasicAuth
 
 
+def _slugify(text: str, used: set) -> str:
+    """소제목을 앵커(id)용 슬러그로 변환한다. 한글을 보존한다."""
+    s = re.sub(r"<[^>]+>", "", text)              # 혹시 남은 태그 제거
+    s = re.sub(r"[^\w가-힣]+", "-", s).strip("-").lower()  # \w는 한글도 포함
+    if not s:
+        s = "section"
+    base, n = s, 1
+    while s in used:
+        n += 1
+        s = f"{base}-{n}"
+    used.add(s)
+    return s
+
+
+def _inject_toc(html: str) -> str:
+    """HTML의 각 h2/h3에 id 앵커를 달고, 본문 맨 앞에 클릭 가능한 목차를 삽입한다.
+
+    h2가 2개 미만이면 목차를 넣지 않는다(짧은 글엔 불필요).
+    """
+    headings = []
+    used: set = set()
+
+    def repl(m):
+        level = int(m.group(1))
+        inner = m.group(2)
+        text = re.sub(r"<[^>]+>", "", inner)
+        slug = _slugify(text, used)
+        headings.append((level, text, slug))
+        return f'<h{level} id="{slug}">{inner}</h{level}>'
+
+    html = re.sub(r"<h([23])>(.*?)</h\1>", repl, html, flags=re.DOTALL)
+
+    h2s = [h for h in headings if h[0] == 2]
+    if len(h2s) < 2:
+        return html
+
+    items = "".join(
+        f'<li style="margin:6px 0;"><a href="#{slug}" '
+        f'style="color:#2563eb;text-decoration:none;">{text}</a></li>'
+        for level, text, slug in h2s
+    )
+    toc = (
+        '<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;'
+        'padding:16px 20px;margin:20px 0;">'
+        '<p style="font-weight:700;margin:0 0 10px;font-size:15px;">📑 목차</p>'
+        f'<ul style="margin:0;padding-left:20px;list-style:disc;">{items}</ul>'
+        '</div>'
+    )
+
+    idx = html.find("<h2")
+    if idx == -1:
+        return html
+    return html[:idx] + toc + html[idx:]
+
+
 def build_post_html(markdown_body: str, detail_link: str = "") -> str:
-    """마크다운 본문을 워드프레스용 HTML로 변환하고 출처를 붙입니다.
+    """마크다운 본문을 워드프레스용 HTML로 변환하고, 목차와 출처를 붙인다.
 
     워드프레스 REST API의 content는 HTML을 기대하므로,
-    마크다운을 그대로 올리면 '## 제목' 같은 기호가 노출됩니다.
+    마크다운을 그대로 올리면 '## 제목' 같은 기호가 노출된다.
+    각 소제목에는 앵커가 달려 목차 클릭 시 해당 위치로 이동한다.
     """
     html = md.markdown(markdown_body, extensions=["tables", "nl2br"])
+    html = _inject_toc(html)
 
     footer = "<hr />\n<p><em>본 글은 공공데이터(복지로 제공 정보)를 바탕으로 작성되었습니다. "
     footer += "정책 내용은 변경될 수 있으니, 신청 전 반드시 원문과 최신 공고문을 확인하세요.</em>"
