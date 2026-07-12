@@ -5,6 +5,7 @@ GitHub Actions와 Railway 봇 모두 이 모듈을 통해 초안에 접근합니
 
 from __future__ import annotations
 
+import os
 import json
 import base64
 import time
@@ -16,7 +17,35 @@ from datetime import datetime
 # 페이지를 이동할 때마다 100여 개 파일을 다시 불러오지 않도록 잠깐 저장해둔다.
 # 글을 저장하면 해당 항목만 즉시 갱신되므로 최신 상태가 유지된다.
 _LIST_CACHE: dict = {}
-_CACHE_TTL = 45.0  # 초. 이 시간이 지나면 GitHub에서 새로 불러온다(새 수집분 반영).
+_CACHE_TTL = 300.0  # 초(5분). 이 시간이 지나면 GitHub에서 새로 불러온다(새 수집분 반영).
+
+# 캐시를 디스크에도 저장해, 서버 재시작(launchd) 후 첫 로드도 즉시 뜨게 한다.
+_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+_CACHE_FILE = os.path.join(_CACHE_DIR, "list_cache.json")
+
+
+def _load_disk_cache() -> None:
+    """프로세스 시작 시 디스크에 저장된 목록 캐시를 메모리로 불러온다(있으면)."""
+    try:
+        with open(_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for repo, entry in data.items():
+            _LIST_CACHE[repo] = entry
+    except Exception:
+        pass  # 캐시 파일이 없거나 손상돼도 무시(다음 조회 때 새로 만든다)
+
+
+def _save_disk_cache() -> None:
+    """메모리 캐시를 디스크에 저장한다. 실패해도 조용히 넘어간다."""
+    try:
+        os.makedirs(_CACHE_DIR, exist_ok=True)
+        with open(_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(_LIST_CACHE, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+_load_disk_cache()
 
 
 class GitHubStore:
@@ -67,6 +96,7 @@ class GitHubStore:
                     entry["drafts"].pop(draft_id, None)
                 else:
                     entry["drafts"][draft_id] = draft
+                _save_disk_cache()
         return success
 
     def load_draft(self, draft_id: str) -> dict | None:
@@ -143,6 +173,7 @@ class GitHubStore:
         else:
             drafts = self._fetch_all_drafts()
             _LIST_CACHE[self.repo] = {"ts": now, "drafts": drafts}
+            _save_disk_cache()
 
         result = [d for d in drafts.values() if d.get("status") != "excluded"]
         return sorted(result, key=lambda x: x.get("fetched_at", ""))
